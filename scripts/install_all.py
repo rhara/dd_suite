@@ -81,9 +81,9 @@ PROJECTS: List[ProjectSpec] = [
         "dd_seqalign",
         ["biopython", "pandas", "numpy", "matplotlib", "py3dmol", "streamlit",
          "pymol-open-source", "fpocket", "rdkit"],
-        pip_targets=["dd_prep", "dd_afpocket", "dd_seqalign[app]"],
-        note="installs dd_prep/dd_afpocket editable into THIS env too (dd_seqalign "
-             "imports them directly) -- separate from their own standalone envs.",
+        pip_targets=["dd_seqalign[app]"],
+        note="fpocket is invoked as a CLI subprocess (no Python bindings) -- "
+             "installed via conda-forge, not a pip dependency.",
     ),
     ProjectSpec(
         "dd_molview",

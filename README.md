@@ -122,7 +122,7 @@ below alone:
 | `dd_docking` | `rdkit numpy pandas qvina meeko pdbfixer openmm openmmforcefields openff-toolkit mdtraj` | `qvina` is an external CLI binary (QuickVina2) |
 | `dd_mdstability` | `rdkit numpy pandas matplotlib pdbfixer openmm openmmforcefields openff-toolkit mdtraj pytest` | |
 | `dd_overlay` | `rdkit numpy scipy py3dmol pytest pybind11` | `pybind11` builds the optional native accelerator; installed with `--no-build-isolation` |
-| `dd_seqalign` | `biopython pandas numpy matplotlib py3dmol streamlit pymol-open-source fpocket rdkit` | also editable-installs `dd_prep`/`dd_afpocket` into *this* env (real inter-repo import, the one exception to "no shared deps" -- see each project's own README) |
+| `dd_seqalign` | `biopython pandas numpy matplotlib py3dmol streamlit pymol-open-source fpocket rdkit` | `fpocket` is an external CLI binary |
 | `dd_molview` | `rdkit biopython pandas numpy py3dmol pybind11 pytest qt6-main qt6-webengine` | C++/Qt6 build -- env creation is automated, the `cmake -S . -B build && cmake --build build` step is not (see `dd_molview/README.md`) |
 | `dd_suite` | `pytest` | this project |
 
