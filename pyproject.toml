@@ -1,0 +1,19 @@
+[project]
+name = "dd_suite"
+version = "0.1.0"
+description = "Cross-env dispatcher and pipeline orchestrator for the dd_* drug-discovery project suite"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+dd_suite = "dd_suite.cli:main"
+dd_suite-pipeline = "dd_suite.cli:main_pipeline"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["dd_suite"]
