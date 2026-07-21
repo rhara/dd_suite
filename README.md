@@ -94,6 +94,25 @@ Pure standard library, so it runs with any Python 3.9+ (including before
 sibling directory next to `dd_suite` (`~/work/<project>`, this suite's
 established layout).
 
+**`dd_molview` and `dd_overlay` involve native C++ builds** -- `dd_suite`
+only automates the plain conda/pip parts, not the C++ toolchain concerns.
+Read that project's own README before installing, don't rely on the table
+below alone:
+- **`dd_molview`** is a compiled C++/Qt6 application, not a pip package --
+  `install_all.py` only creates its env; the actual
+  `cmake -S . -B build && cmake --build build` step (CMake ≥3.21, a C++20
+  compiler, full Qt6 with WebEngineWidgets) is manual. See
+  `dd_molview/README.md`'s Installation section for the per-OS compiler/Qt6
+  setup and troubleshooting.
+- **`dd_overlay`** builds an *optional* `pybind11` native accelerator as
+  part of its normal `pip install --no-deps --no-build-isolation -e .` --
+  this succeeds either way (falls back to pure Python silently if no C++
+  compiler is present), but whether the fast path actually built is not
+  visible in `install_all.py`'s output. See `dd_overlay/README.md`'s
+  "Native acceleration" section for the compiler prerequisites per OS and
+  the one-line check for whether it actually built
+  (`optimize._HAVE_NATIVE`).
+
 | Project | Env packages (conda-forge) | Notes |
 |---|---|---|
 | `dd_prep` | `rdkit numpy openmm pdbfixer` | |
