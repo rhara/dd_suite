@@ -71,9 +71,64 @@ pip install --no-deps -e .
 ```
 
 This installs two console commands: `dd_suite`, `dd_suite-pipeline`. Every
-`dd_*` project it dispatches to must already have its own dedicated env
-installed (env name == project name, the established convention across
-this suite) -- `dd_suite` does not create or manage those envs itself.
+`dd_*` project it dispatches to must have its own dedicated env installed
+(env name == project name, the established convention across this suite)
+-- see below for installing all of them at once.
+
+## Installing every dd_* project
+
+Each project's own README documents its exact `mamba create -n <project>
+...` + `pip install --no-deps -e .` recipe (each with a different package
+list -- there's no one-size-fits-all env). `scripts/install_all.py`
+replays all 10 of these -- nothing invented, just automated:
+
+```bash
+python3 scripts/install_all.py            # every project, skips envs that already exist
+python3 scripts/install_all.py --only dd_prep dd_docking   # just these two
+python3 scripts/install_all.py --dry-run   # print every command without running it
+python3 scripts/install_all.py --force     # remove + recreate an existing env (destructive)
+```
+
+Pure standard library, so it runs with any Python 3.9+ (including before
+`dd_suite` itself is installed) -- it assumes every project lives as a
+sibling directory next to `dd_suite` (`~/work/<project>`, this suite's
+established layout).
+
+| Project | Env packages (conda-forge) | Notes |
+|---|---|---|
+| `dd_prep` | `rdkit numpy openmm pdbfixer` | |
+| `dd_afpocket` | `rdkit numpy pandas pdbfixer openmm mdtraj matplotlib scipy scikit-learn py3dmol pytest fpocket` | `fpocket` is an external CLI binary |
+| `dd_chembl` | `rdkit lightgbm scikit-learn joblib` | |
+| `dd_confhunt` | `"rdkit<2026" dimorphite-dl numpy` | pinned `<2026` -- `dimorphite-dl` itself requires it |
+| `dd_docking` | `rdkit numpy pandas qvina meeko pdbfixer openmm openmmforcefields openff-toolkit mdtraj` | `qvina` is an external CLI binary (QuickVina2) |
+| `dd_mdstability` | `rdkit numpy pandas matplotlib pdbfixer openmm openmmforcefields openff-toolkit mdtraj pytest` | |
+| `dd_overlay` | `rdkit numpy scipy py3dmol pytest pybind11` | `pybind11` builds the optional native accelerator; installed with `--no-build-isolation` |
+| `dd_seqalign` | `biopython pandas numpy matplotlib py3dmol streamlit pymol-open-source fpocket rdkit` | also editable-installs `dd_prep`/`dd_afpocket` into *this* env (real inter-repo import, the one exception to "no shared deps" -- see each project's own README) |
+| `dd_molview` | `rdkit biopython pandas numpy py3dmol pybind11 pytest qt6-main qt6-webengine` | C++/Qt6 build -- env creation is automated, the `cmake -S . -B build && cmake --build build` step is not (see `dd_molview/README.md`) |
+| `dd_suite` | `pytest` | this project |
+
+After every project is processed, `install_all.py` writes
+`install_manifest.json` (gitignored -- it's a per-machine snapshot, not
+something to commit) and prints a summary table of what actually got
+installed where:
+
+```
+=== install summary ===
+project          version    commit    status
+dd_prep          0.1.0      07b0b41   ok
+dd_afpocket      0.1.0      35b6226   ok
+...
+dd_molview       -          aa7aa36   env-only (manual cmake build required)
+dd_suite         0.1.0      ebb13ec   ok
+```
+
+This is a **record of what's installed**, not a lockfile/pin mechanism --
+`version` is each project's own `pyproject.toml` version (`pip show`) and
+`commit` is that repo's current git commit, so you can tell at a glance
+which commit of each project is actually live in its env. None of the
+`dd_*` projects have formal release tags yet, so pinning installs to a
+specific version/tag (rather than "whatever commit is currently checked
+out") isn't wired up -- worth revisiting once they do.
 
 ## Usage
 
@@ -143,13 +198,23 @@ functions, not a generic framework.
 | `adapters.py` | One function + result dataclass per chainable dd_* CLI stage |
 | `pipelines.py` | Composed multi-stage workflows (currently: `dock_and_validate`) |
 | `cli.py` | `dd_suite` (Layer 1 passthrough) / `dd_suite-pipeline` (Layer 2 subcommands) |
+| `scripts/install_all.py` | Standalone bulk installer for all 10 projects' envs (see "Installing every dd_* project" above) -- pure stdlib, not part of the `dd_suite` package itself |
 
 ## Limitations
 
-- `dd_suite` assumes every dispatched project's env already exists and is
-  named exactly like the project (`mamba create -n <project> ...`) -- it
-  does not create, update, or otherwise manage those envs.
+- `dd_suite` (the `dd_suite`/`dd_suite-pipeline` commands) assumes every
+  dispatched project's env already exists and is named exactly like the
+  project -- it does not create, update, or otherwise manage those envs
+  itself. `scripts/install_all.py` is a separate, standalone bootstrap
+  script for that (see above); the dispatcher/pipeline code never calls it.
+- `install_all.py` automates env creation + editable install for 9 of the
+  10 projects; `dd_molview`'s C++/Qt6 build step is not automated (env
+  creation is) -- see its own README.
 - Only one pipeline exists today (`dock_and_validate`). Others (e.g.
   wiring in `dd_afpocket` as an alternative ensemble source, or a
   `dd_chembl` train -> predict -> dock loop) are straightforward to add
   the same way but have not been implemented yet.
+- `install_manifest.json` records what's installed (version + git commit),
+  not a lockfile pinning what *should* be installed -- there's no "install
+  exactly v1.2.3 of dd_prep" mode yet, since none of the `dd_*` projects
+  have formal release tags to pin to.

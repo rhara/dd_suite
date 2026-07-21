@@ -7,3 +7,7 @@ __pycache__/
 # dock_and_validate pipeline output (reproducible from committed fixture
 # data via the commands in README.md)
 data/out/
+
+# scripts/install_all.py's per-machine record of what's actually installed
+# where -- not something to commit, regenerate any time with the script
+install_manifest.json

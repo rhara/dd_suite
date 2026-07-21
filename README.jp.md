@@ -70,8 +70,66 @@ pip install --no-deps -e .
 これにより2つのコンソールコマンド、`dd_suite`、`dd_suite-pipeline`が
 インストールされる。`dd_suite`がディスパッチする各`dd_*`プロジェクトは、
 あらかじめ専用envがインストール済みである必要がある（env名 == プロジェクト
-名、このsuite全体で確立された慣例）——`dd_suite`自身はそれらのenvを作成・
-管理しない。
+名、このsuite全体で確立された慣例）——以下は、それらすべてを一括で
+インストールする方法である。
+
+## dd_*プロジェクトを一括インストールする
+
+各プロジェクト自身のREADMEに、そのプロジェクト固有の`mamba create -n
+<project> ...` + `pip install --no-deps -e .`という正確なレシピが
+ドキュメント化されている（パッケージリストはプロジェクトごとに異なり、
+すべてに共通する万能envは存在しない）。`scripts/install_all.py`は、この
+10個すべてを再生する——何も新しく発明はしていない、単なる自動化である:
+
+```bash
+python3 scripts/install_all.py            # 全プロジェクト、既存envはスキップ
+python3 scripts/install_all.py --only dd_prep dd_docking   # この2つだけ
+python3 scripts/install_all.py --dry-run   # 実行せず、すべてのコマンドを表示するだけ
+python3 scripts/install_all.py --force     # 既存envを削除して再作成（破壊的）
+```
+
+標準ライブラリのみで動作するため、`dd_suite`自体がインストールされる前
+でも任意のPython 3.9以降で実行できる——各プロジェクトが`dd_suite`の
+兄弟ディレクトリとして存在すること（`~/work/<project>`、このsuiteで
+確立されたレイアウト）を前提としている。
+
+| プロジェクト | envパッケージ（conda-forge） | 備考 |
+|---|---|---|
+| `dd_prep` | `rdkit numpy openmm pdbfixer` | |
+| `dd_afpocket` | `rdkit numpy pandas pdbfixer openmm mdtraj matplotlib scipy scikit-learn py3dmol pytest fpocket` | `fpocket`は外部CLIバイナリ |
+| `dd_chembl` | `rdkit lightgbm scikit-learn joblib` | |
+| `dd_confhunt` | `"rdkit<2026" dimorphite-dl numpy` | `<2026`に固定——`dimorphite-dl`自体がそれを要求する |
+| `dd_docking` | `rdkit numpy pandas qvina meeko pdbfixer openmm openmmforcefields openff-toolkit mdtraj` | `qvina`は外部CLIバイナリ（QuickVina2） |
+| `dd_mdstability` | `rdkit numpy pandas matplotlib pdbfixer openmm openmmforcefields openff-toolkit mdtraj pytest` | |
+| `dd_overlay` | `rdkit numpy scipy py3dmol pytest pybind11` | `pybind11`はオプションのネイティブアクセラレータをビルドする。`--no-build-isolation`付きでインストール |
+| `dd_seqalign` | `biopython pandas numpy matplotlib py3dmol streamlit pymol-open-source fpocket rdkit` | `dd_prep`/`dd_afpocket`も*このenv*にeditableインストールする（実在するリポジトリ間import、「共有依存なし」の唯一の例外——詳細は各プロジェクト自身のREADME参照） |
+| `dd_molview` | `rdkit biopython pandas numpy py3dmol pybind11 pytest qt6-main qt6-webengine` | C++/Qt6ビルド——env作成は自動化されているが、`cmake -S . -B build && cmake --build build`ステップは自動化されていない（`dd_molview/README.md`参照） |
+| `dd_suite` | `pytest` | 本プロジェクト |
+
+全プロジェクトの処理が終わると、`install_all.py`は`install_manifest.json`
+（gitignore対象——マシン固有のスナップショットであり、コミットするもの
+ではない）を書き出し、実際に何がどこにインストールされたかのサマリー
+テーブルを表示する:
+
+```
+=== install summary ===
+project          version    commit    status
+dd_prep          0.1.0      07b0b41   ok
+dd_afpocket      0.1.0      35b6226   ok
+...
+dd_molview       -          aa7aa36   env-only (manual cmake build required)
+dd_suite         0.1.0      ebb13ec   ok
+```
+
+これは**現在インストールされているものの記録**であり、ロックファイル/
+バージョン固定の仕組みではない——`version`は各プロジェクト自身の
+`pyproject.toml`のバージョン（`pip show`）、`commit`はそのレポジトリの
+現在のgitコミットであり、各プロジェクトのどのコミットが実際にそのenv
+で動いているかが一目でわかる。`dd_*`プロジェクトはまだどれも正式な
+リリースタグを持っていないため、「特定のバージョン/タグへ固定して
+インストールする」（「今チェックアウトされているコミットをそのまま
+使う」ではなく）仕組みはまだ用意していない——タグ運用が始まったら
+見直す価値がある。
 
 ## 使い方
 
@@ -141,12 +199,25 @@ print(result.report_json)  # -> data/out/4eqc/validate/<ligand_id>/report.json
 | `adapters.py` | 連結可能なdd_* CLIステージごとの関数 + 結果データクラス |
 | `pipelines.py` | 複数ステージを合成したワークフロー（現時点では`dock_and_validate`） |
 | `cli.py` | `dd_suite`（Layer 1パススルー）/ `dd_suite-pipeline`（Layer 2サブコマンド） |
+| `scripts/install_all.py` | 10プロジェクト全部のenvを一括構築するスタンドアロンインストーラー（前述の「dd_*プロジェクトを一括インストールする」参照）——`dd_suite`パッケージ自体には含まれない、標準ライブラリのみのスクリプト |
 
 ## 制限事項
 
-- `dd_suite`は、ディスパッチ対象の各プロジェクトのenvがすでに存在し、
-  プロジェクト名とまったく同じ名前である（`mamba create -n <project>
-  ...`）ことを前提としている——それらのenvの作成・更新・管理は行わない。
+- `dd_suite`（`dd_suite`/`dd_suite-pipeline`コマンド）は、ディスパッチ
+  対象の各プロジェクトのenvがすでに存在し、プロジェクト名とまったく
+  同じ名前であることを前提としている——それらのenvの作成・更新・管理は
+  自身では行わない。`scripts/install_all.py`はそのための別建ての
+  スタンドアロンなブートストラップスクリプトである（前述参照）——
+  ディスパッチャ/パイプラインのコード自体はこれを呼び出さない。
+- `install_all.py`は10プロジェクト中9つについてenv作成+editable
+  インストールを自動化する。`dd_molview`のC++/Qt6ビルドステップは
+  自動化されていない（env作成は自動化されている）——詳細は同プロジェクト
+  自身のREADME参照。
+- `install_manifest.json`は「何がインストールされているか」（バージョン+
+  gitコミット）を記録するものであり、「何をインストールすべきか」を
+  固定するロックファイルではない——`dd_*`プロジェクトはまだどれも正式な
+  リリースタグを持っていないため、「dd_prepのv1.2.3を厳密にインストール
+  する」というモードはまだない。
 - 現時点で実装済みのパイプラインは`dock_and_validate`の1つのみ。他の
   パイプライン（例: `dd_afpocket`を代替アンサンブルソースとして組み込む、
   `dd_chembl`のtrain -> predict -> dockループなど）も同じ方法で容易に
