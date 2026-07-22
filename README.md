@@ -125,7 +125,7 @@ below alone:
 | `dd_afpocket` | `rdkit numpy pandas pdbfixer openmm mdtraj matplotlib scipy scikit-learn py3dmol pytest fpocket` | `fpocket` is an external CLI binary |
 | `dd_chembl` | `rdkit lightgbm scikit-learn joblib` | |
 | `dd_confhunt` | `"rdkit<2026" dimorphite-dl numpy` | pinned `<2026` -- `dimorphite-dl` itself requires it |
-| `dd_draw` | `rdkit jinja2 reportlab svglib pytest` | PDF via reportlab+svglib (pure Python), not WeasyPrint/cairosvg, to avoid a system Cairo/Pango/GTK dependency -- see `dd_draw/README.md`'s "Why reportlab+svglib" |
+| `dd_draw` | `rdkit numpy jinja2 reportlab svglib pytest` | PDF via reportlab+svglib (pure Python), not WeasyPrint/cairosvg, to avoid a system Cairo/Pango/GTK dependency -- see `dd_draw/README.md`'s "Why reportlab+svglib" |
 | `dd_docking` | `rdkit numpy pandas qvina meeko pdbfixer openmm openmmforcefields openff-toolkit mdtraj` | `qvina` is an external CLI binary (QuickVina2) |
 | `dd_mdstability` | `rdkit numpy pandas matplotlib pdbfixer openmm openmmforcefields openff-toolkit mdtraj pytest` | |
 | `dd_overlay` | `rdkit numpy scipy py3dmol pytest pybind11` | `pybind11` builds the optional native accelerator; installed with `--no-build-isolation` |

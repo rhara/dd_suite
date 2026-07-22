@@ -78,7 +78,7 @@ PROJECTS: List[ProjectSpec] = [
     ),
     ProjectSpec("dd_chembl", ["rdkit", "lightgbm", "scikit-learn", "joblib"]),
     ProjectSpec("dd_confhunt", ["rdkit<2026", "dimorphite-dl", "numpy"]),
-    ProjectSpec("dd_draw", ["rdkit", "jinja2", "reportlab", "svglib", "pytest"]),
+    ProjectSpec("dd_draw", ["rdkit", "numpy", "jinja2", "reportlab", "svglib", "pytest"]),
     ProjectSpec(
         "dd_docking",
         ["rdkit", "numpy", "pandas", "qvina", "meeko", "pdbfixer", "openmm",
