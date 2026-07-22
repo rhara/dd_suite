@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import platform
 import shutil
 import subprocess
 import sys
@@ -31,6 +32,22 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
+
+
+def _current_conda_subdir() -> str:
+    """Best-effort conda subdir name (e.g. osx-64, osx-arm64, linux-64, win-64)
+    for the machine actually running this script -- used only to decide
+    whether to skip a project whose conda packages aren't built for this
+    platform, not to talk to conda itself."""
+    system = platform.system()
+    machine = platform.machine()
+    if system == "Darwin":
+        return "osx-arm64" if machine == "arm64" else "osx-64"
+    if system == "Linux":
+        return "linux-64"
+    if system == "Windows":
+        return "win-64"
+    return f"{system}-{machine}"
 
 
 @dataclass
@@ -41,6 +58,8 @@ class ProjectSpec:
     pip_extra_args: List[str] = field(default_factory=list)
     build_type: str = "pip"  # "pip" or "cmake"
     note: Optional[str] = None
+    unsupported_platforms: List[str] = field(default_factory=list)
+    unsupported_reason: Optional[str] = None
 
     def __post_init__(self) -> None:
         if self.pip_targets is None:
@@ -94,6 +113,11 @@ PROJECTS: List[ProjectSpec] = [
         note="C++/Qt6 build, not automated by this script -- after env creation, "
              "run the `cmake -S . -B build && cmake --build build` steps in "
              "dd_molview/README.md's Installation section by hand.",
+        unsupported_platforms=["osx-64"],
+        unsupported_reason="conda-forge does not build qt6-webengine for osx-64 "
+             "(Intel Mac) -- it only ships osx-arm64, linux-64 and win-64 builds. "
+             "Build dd_molview's C++/Qt6 desktop app on Apple Silicon or Linux instead, "
+             "or use dd_cview/the PySide6-based dd_molview workflow there.",
     ),
     ProjectSpec("dd_suite", ["pytest"]),
 ]
@@ -123,6 +147,12 @@ def _env_bin(prefix: Path, name: str) -> Path:
 
 def install_one(spec: ProjectSpec, work_root: Path, conda_exe: str, *, force: bool, dry_run: bool) -> dict:
     print(f"\n=== {spec.name} ===", flush=True)
+
+    current_subdir = _current_conda_subdir()
+    if current_subdir in spec.unsupported_platforms:
+        print(f"[{spec.name}] skipping: unsupported on {current_subdir}. {spec.unsupported_reason}", flush=True)
+        return {"name": spec.name, "prefix": None, "status": f"skipped ({current_subdir} unsupported)"}
+
     envs = _existing_envs(conda_exe)
     exists = spec.name in envs
 
