@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Bulk-installs every dd_* project (the 9 siblings + dd_suite itself),
+"""Bulk-installs every dd_* project (the 10 siblings + dd_suite itself),
 each into its own dedicated conda/mamba env, by replaying the exact
 `mamba create ... ` / `pip install --no-deps -e .` recipe already
 documented in that project's own README -- nothing here is invented, this
-just automates what a user would otherwise type by hand 10 times.
+just automates what a user would otherwise type by hand 11 times.
 
 Idempotent: an env that already exists is left as-is (not recreated) --
 only the `pip install --no-deps -e .` step re-runs, which is safe and fast
@@ -78,6 +78,7 @@ PROJECTS: List[ProjectSpec] = [
     ),
     ProjectSpec("dd_chembl", ["rdkit", "lightgbm", "scikit-learn", "joblib"]),
     ProjectSpec("dd_confhunt", ["rdkit<2026", "dimorphite-dl", "numpy"]),
+    ProjectSpec("dd_draw", ["rdkit", "jinja2", "reportlab", "svglib", "pytest"]),
     ProjectSpec(
         "dd_docking",
         ["rdkit", "numpy", "pandas", "qvina", "meeko", "pdbfixer", "openmm",
