@@ -37,8 +37,8 @@ from typing import List, Optional
 def _current_conda_subdir() -> str:
     """Best-effort conda subdir name (e.g. osx-64, osx-arm64, linux-64, win-64)
     for the machine actually running this script -- used only to decide
-    whether to skip a project whose conda packages aren't built for this
-    platform, not to talk to conda itself."""
+    whether to drop platform-specific conda packages this project can't get
+    from conda-forge here, not to talk to conda itself."""
     system = platform.system()
     machine = platform.machine()
     if system == "Darwin":
@@ -58,8 +58,8 @@ class ProjectSpec:
     pip_extra_args: List[str] = field(default_factory=list)
     build_type: str = "pip"  # "pip" or "cmake"
     note: Optional[str] = None
-    unsupported_platforms: List[str] = field(default_factory=list)
-    unsupported_reason: Optional[str] = None
+    platform_package_excludes: dict = field(default_factory=dict)
+    platform_notes: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.pip_targets is None:
@@ -113,11 +113,14 @@ PROJECTS: List[ProjectSpec] = [
         note="C++/Qt6 build, not automated by this script -- after env creation, "
              "run the `cmake -S . -B build && cmake --build build` steps in "
              "dd_molview/README.md's Installation section by hand.",
-        unsupported_platforms=["osx-64"],
-        unsupported_reason="conda-forge does not build qt6-webengine for osx-64 "
-             "(Intel Mac) -- it only ships osx-arm64, linux-64 and win-64 builds. "
-             "Build dd_molview's C++/Qt6 desktop app on Apple Silicon or Linux instead, "
-             "or use dd_cview/the PySide6-based dd_molview workflow there.",
+        platform_package_excludes={"osx-64": ["qt6-main", "qt6-webengine"]},
+        platform_notes={
+            "osx-64": "conda-forge does not build qt6-webengine for osx-64 (Intel Mac) "
+                      "-- only osx-arm64, linux-64 and win-64 are published, so qt6-main/"
+                      "qt6-webengine are dropped from this env here. Install Qt6 yourself "
+                      "via Homebrew (`brew install qt`) and follow dd_molview/README.md's "
+                      "'macOS (Homebrew Qt6)' section for the cmake build.",
+        },
     ),
     ProjectSpec("dd_suite", ["pytest"]),
 ]
@@ -149,9 +152,11 @@ def install_one(spec: ProjectSpec, work_root: Path, conda_exe: str, *, force: bo
     print(f"\n=== {spec.name} ===", flush=True)
 
     current_subdir = _current_conda_subdir()
-    if current_subdir in spec.unsupported_platforms:
-        print(f"[{spec.name}] skipping: unsupported on {current_subdir}. {spec.unsupported_reason}", flush=True)
-        return {"name": spec.name, "prefix": None, "status": f"skipped ({current_subdir} unsupported)"}
+    excluded = spec.platform_package_excludes.get(current_subdir, [])
+    conda_packages = [p for p in spec.conda_packages if p not in excluded]
+    if excluded:
+        print(f"[{spec.name}] {current_subdir}: excluding {', '.join(excluded)} -- "
+              f"{spec.platform_notes.get(current_subdir, '')}", flush=True)
 
     envs = _existing_envs(conda_exe)
     exists = spec.name in envs
@@ -163,7 +168,7 @@ def install_one(spec: ProjectSpec, work_root: Path, conda_exe: str, *, force: bo
         exists = False
 
     if not exists:
-        cmd = [conda_exe, "create", "-y", "-n", spec.name, "-c", "conda-forge", "python=3.12", *spec.conda_packages]
+        cmd = [conda_exe, "create", "-y", "-n", spec.name, "-c", "conda-forge", "python=3.12", *conda_packages]
         print(f"[{spec.name}] creating env: {' '.join(cmd)}", flush=True)
         if not dry_run:
             subprocess.run(cmd, check=True)
@@ -175,7 +180,10 @@ def install_one(spec: ProjectSpec, work_root: Path, conda_exe: str, *, force: bo
 
     if spec.build_type == "cmake":
         print(f"[{spec.name}] build_type=cmake: not automated -- {spec.note}", flush=True)
-        status = "env-only (manual cmake build required)"
+        if excluded:
+            status = f"env-only, missing {', '.join(excluded)} (manual Qt6 + cmake build required)"
+        else:
+            status = "env-only (manual cmake build required)"
     else:
         if prefix is not None:
             bin_dir = _env_bin(prefix, "pip")

@@ -103,13 +103,13 @@ below alone:
   `cmake -S . -B build && cmake --build build` step (CMake ≥3.21, a C++20
   compiler, full Qt6 with WebEngineWidgets) is manual. See
   `dd_molview/README.md`'s Installation section for the per-OS compiler/Qt6
-  setup and troubleshooting. **Not supported on Intel Mac (`osx-64`)** --
-  conda-forge doesn't publish `qt6-webengine` builds for that platform
-  (only `osx-arm64`, `linux-64`, `win-64` exist), so `install_all.py`
-  detects `osx-64` and skips `dd_molview`'s env creation automatically
-  instead of failing the whole run; see `dd_molview/README.md`'s
-  Installation section for the Intel Mac workaround (a Homebrew-based Qt6
-  build).
+  setup and troubleshooting. **On Intel Mac (`osx-64`), Qt6 can't come from
+  conda-forge** -- it doesn't publish `qt6-webengine` builds for that
+  platform (only `osx-arm64`, `linux-64`, `win-64` exist), so
+  `install_all.py` detects `osx-64` and drops just `qt6-main`/
+  `qt6-webengine` from the env it creates there (`rdkit`/`biopython`/etc.
+  still install normally); see `dd_molview/README.md`'s Installation
+  section for the Intel Mac Qt6 workaround (a Homebrew-based build).
 - **`dd_overlay`** builds an *optional* `pybind11` native accelerator as
   part of its normal `pip install --no-deps --no-build-isolation -e .` --
   this succeeds either way (falls back to pure Python silently if no C++
@@ -129,7 +129,7 @@ below alone:
 | `dd_mdstability` | `rdkit numpy pandas matplotlib pdbfixer openmm openmmforcefields openff-toolkit mdtraj pytest` | |
 | `dd_overlay` | `rdkit numpy scipy py3dmol pytest pybind11` | `pybind11` builds the optional native accelerator; installed with `--no-build-isolation` |
 | `dd_seqalign` | `biopython pandas numpy matplotlib py3dmol streamlit pymol-open-source fpocket rdkit` | `fpocket` is an external CLI binary |
-| `dd_molview` | `rdkit biopython pandas numpy py3dmol pybind11 pytest qt6-main qt6-webengine` | C++/Qt6 build -- env creation is automated, the `cmake -S . -B build && cmake --build build` step is not (see `dd_molview/README.md`). **Not supported on Intel Mac (`osx-64`)** -- `install_all.py` auto-skips it there since conda-forge has no `qt6-webengine` for that platform |
+| `dd_molview` | `rdkit biopython pandas numpy py3dmol pybind11 pytest qt6-main qt6-webengine` | C++/Qt6 build -- env creation is automated, the `cmake -S . -B build && cmake --build build` step is not (see `dd_molview/README.md`). **On Intel Mac (`osx-64`)**, `install_all.py` drops `qt6-main`/`qt6-webengine` from this list (conda-forge has no build for that platform) -- Qt6 must come from Homebrew instead, see `dd_molview/README.md` |
 | `dd_suite` | `pytest` | this project |
 
 After every project is processed, `install_all.py` writes
