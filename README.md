@@ -3,8 +3,8 @@
 # dd_suite — Cross-env dispatch meets composed pipelines: any dd_* command in, its own dedicated env running it out
 
 A thin orchestration layer that makes the independent `dd_afpocket` /
-`dd_chembl` / `dd_confhunt` / `dd_docking` / `dd_draw` / `dd_mdstability` /
-`dd_molview` / `dd_overlay` / `dd_prep` / `dd_seqalign` repos feel like **one suite**,
+`dd_chembl` / `dd_confhunt` / `dd_docking` / `dd_draw` / `dd_idea` /
+`dd_mdstability` / `dd_molview` / `dd_overlay` / `dd_prep` / `dd_seqalign` repos feel like **one suite**,
 without merging their code or environments. Each `dd_*` project keeps its
 own dedicated conda/mamba env on purpose -- they were deliberately split
 apart specifically to avoid dependency conflicts (as of this writing,
@@ -80,7 +80,7 @@ This installs two console commands: `dd_suite`, `dd_suite-pipeline`. Every
 Each project's own README documents its exact `mamba create -n <project>
 ...` + `pip install --no-deps -e .` recipe (each with a different package
 list -- there's no one-size-fits-all env). `scripts/install_all.py`
-replays all 11 of these -- nothing invented, just automated:
+replays all 12 of these -- nothing invented, just automated:
 
 ```bash
 python3 scripts/install_all.py            # every project, skips envs that already exist
@@ -130,6 +130,7 @@ below alone:
 | `dd_mdstability` | `rdkit numpy pandas matplotlib pdbfixer openmm openmmforcefields openff-toolkit mdtraj pytest` | |
 | `dd_overlay` | `rdkit numpy scipy py3dmol pytest pybind11` | `pybind11` builds the optional native accelerator; installed with `--no-build-isolation` |
 | `dd_seqalign` | `biopython pandas numpy matplotlib py3dmol streamlit pymol-open-source fpocket rdkit` | `fpocket` is an external CLI binary |
+| `dd_idea` | `biopython pandas numpy matplotlib py3dmol streamlit pymol-open-source fpocket` | `fpocket` is an external CLI binary |
 | `dd_molview` | `rdkit biopython pandas numpy py3dmol pybind11 pytest qt6-main qt6-webengine` | C++/Qt6 build -- env creation is automated, the `cmake -S . -B build && cmake --build build` step is not (see `dd_molview/README.md`). **On Intel Mac (`osx-64`)**, `install_all.py` drops `qt6-main`/`qt6-webengine` from this list (conda-forge has no build for that platform) -- Qt6 must come from Homebrew instead, see `dd_molview/README.md` |
 | `dd_suite` | `pytest` | this project |
 
@@ -227,7 +228,7 @@ functions, not a generic framework.
 | `adapters.py` | One function + result dataclass per chainable dd_* CLI stage |
 | `pipelines.py` | Composed multi-stage workflows (currently: `dock_and_validate`) |
 | `cli.py` | `dd_suite` (Layer 1 passthrough) / `dd_suite-pipeline` (Layer 2 subcommands) |
-| `scripts/install_all.py` | Standalone bulk installer for all 11 projects' envs (see "Installing every dd_* project" above) -- pure stdlib, not part of the `dd_suite` package itself |
+| `scripts/install_all.py` | Standalone bulk installer for all 12 projects' envs (see "Installing every dd_* project" above) -- pure stdlib, not part of the `dd_suite` package itself |
 
 ## Limitations
 
@@ -236,8 +237,8 @@ functions, not a generic framework.
   project -- it does not create, update, or otherwise manage those envs
   itself. `scripts/install_all.py` is a separate, standalone bootstrap
   script for that (see above); the dispatcher/pipeline code never calls it.
-- `install_all.py` automates env creation + editable install for 10 of the
-  11 projects; `dd_molview`'s C++/Qt6 build step is not automated (env
+- `install_all.py` automates env creation + editable install for 11 of the
+  12 projects; `dd_molview`'s C++/Qt6 build step is not automated (env
   creation is) -- see its own README.
 - Only one pipeline exists today (`dock_and_validate`). Others (e.g.
   wiring in `dd_afpocket` as an alternative ensemble source, or a

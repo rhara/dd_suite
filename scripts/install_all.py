@@ -123,6 +123,14 @@ PROJECTS: List[ProjectSpec] = [
                       "'macOS (Homebrew Qt6)' section for the cmake build.",
         },
     ),
+    ProjectSpec(
+        "dd_idea",
+        ["biopython", "pandas", "numpy", "matplotlib", "py3dmol", "streamlit",
+         "pymol-open-source", "fpocket"],
+        pip_targets=["dd_idea[app]"],
+        note="fpocket is invoked as a CLI subprocess (no Python bindings) -- "
+             "installed via conda-forge, not a pip dependency.",
+    ),
     ProjectSpec("dd_suite", ["pytest"]),
 ]
 
